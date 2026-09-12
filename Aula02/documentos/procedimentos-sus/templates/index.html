@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Auditoria SUS — Instituto do Cérebro</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f4f8;
+            color: #2d3748;
+            min-height: 100vh;
+        }
+
+        header {
+            background: linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%);
+            color: white;
+            padding: 28px 40px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        header .logo { font-size: 36px; }
+        header h1 { font-size: 22px; font-weight: 700; }
+        header p  { font-size: 13px; opacity: 0.8; margin-top: 2px; }
+
+        main {
+            max-width: 860px;
+            margin: 40px auto;
+            padding: 0 20px 60px;
+        }
+
+        .step {
+            background: white;
+            border-radius: 12px;
+            padding: 28px 32px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+            transition: box-shadow 0.2s;
+        }
+        .step:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .step-number {
+            background: #2b6cb0;
+            color: white;
+            border-radius: 50%;
+            width: 32px; height: 32px;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 15px; flex-shrink: 0;
+        }
+        .step-title { font-size: 17px; font-weight: 600; color: #1a365d; }
+
+        /* Model cards */
+        .model-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        .model-card {
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+        .model-card:hover { border-color: #2b6cb0; background: #ebf4ff; }
+        .model-card.selecionado {
+            border-color: #2b6cb0;
+            background: #ebf4ff;
+            box-shadow: 0 0 0 3px rgba(43,108,176,0.2);
+        }
+        .model-card .icone { font-size: 32px; margin-bottom: 8px; }
+        .model-card h3 { font-size: 16px; font-weight: 700; color: #1a365d; margin-bottom: 4px; }
+        .model-card p  { font-size: 13px; color: #718096; }
+
+        /* File area */
+        .arquivo-area { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+        .btn-arquivo {
+            background: #2b6cb0; color: white;
+            border: none; border-radius: 8px;
+            padding: 11px 22px; font-size: 14px; font-weight: 600;
+            cursor: pointer; transition: background 0.2s; white-space: nowrap;
+        }
+        .btn-arquivo:hover { background: #2c5282; }
+        .nome-arquivo {
+            flex: 1; font-size: 13px; color: #718096;
+            background: #f7fafc; border: 1px solid #e2e8f0;
+            border-radius: 8px; padding: 10px 14px;
+            min-width: 200px; word-break: break-all;
+        }
+        .nome-arquivo.selecionado { color: #2d3748; border-color: #68d391; }
+
+        /* Column mapping */
+        .analisando {
+            display: flex; align-items: center; gap: 10px;
+            color: #2b6cb0; font-size: 14px; padding: 8px 0;
+        }
+        .mapeamento-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+        @media (max-width: 600px) { .mapeamento-grid { grid-template-columns: 1fr; } }
+
+        .campo-map {
+            display: flex; flex-direction: column; gap: 5px;
+        }
+        .campo-map label {
+            font-size: 12px; font-weight: 600; color: #4a5568; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .campo-map .obrigatorio::after { content: " *"; color: #e53e3e; }
+        .campo-map select {
+            width: 100%; padding: 9px 12px;
+            border: 1px solid #e2e8f0; border-radius: 8px;
+            font-size: 13px; color: #2d3748; background: #fff;
+            cursor: pointer; appearance: auto;
+        }
+        .campo-map select:focus { outline: none; border-color: #2b6cb0; }
+
+        .aviso-mapeamento {
+            font-size: 12px; color: #718096;
+            background: #fffbeb; border: 1px solid #fbd38d;
+            border-radius: 8px; padding: 10px 14px; margin-top: 14px;
+        }
+
+        /* Execute button */
+        .btn-executar {
+            width: 100%; background: linear-gradient(135deg, #276749 0%, #38a169 100%);
+            color: white; border: none; border-radius: 10px;
+            padding: 16px; font-size: 17px; font-weight: 700;
+            cursor: pointer; transition: opacity 0.2s, transform 0.1s;
+        }
+        .btn-executar:hover:not(:disabled) { opacity: 0.92; transform: translateY(-1px); }
+        .btn-executar:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Loading */
+        .loading {
+            display: none; align-items: center; justify-content: center;
+            gap: 12px; padding: 20px; color: #2b6cb0; font-weight: 600;
+        }
+        .spinner {
+            width: 24px; height: 24px;
+            border: 3px solid #bee3f8; border-top-color: #2b6cb0;
+            border-radius: 50%; animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Results */
+        #resultados { display: none; }
+        .resultado-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+        .resultado-header .icone-status { font-size: 28px; }
+        .resultado-header h2 { font-size: 18px; font-weight: 700; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 14px; margin-bottom: 22px;
+        }
+        .stat-card {
+            background: #f7fafc; border-radius: 10px;
+            padding: 16px; text-align: center; border: 1px solid #e2e8f0;
+        }
+        .stat-card .numero { font-size: 30px; font-weight: 800; color: #2b6cb0; line-height: 1; }
+        .stat-card .numero.ok   { color: #276749; }
+        .stat-card .numero.erro { color: #c53030; }
+        .stat-card .label { font-size: 12px; color: #718096; margin-top: 6px; line-height: 1.3; }
+
+        .arquivo-saida {
+            background: #f0fff4; border: 1px solid #9ae6b4;
+            border-radius: 8px; padding: 14px 18px;
+            font-size: 13px; color: #276749; margin-bottom: 16px; word-break: break-all;
+        }
+        .btn-abrir {
+            background: #276749; color: white; border: none;
+            border-radius: 8px; padding: 11px 22px;
+            font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.2s;
+        }
+        .btn-abrir:hover { background: #22543d; }
+        .btn-nova {
+            background: none; border: 2px solid #2b6cb0; color: #2b6cb0;
+            border-radius: 8px; padding: 10px 22px; font-size: 14px; font-weight: 600;
+            cursor: pointer; margin-top: 14px; transition: all 0.2s;
+        }
+        .btn-nova:hover { background: #ebf4ff; }
+
+        /* Error */
+        .erro-box {
+            background: #fff5f5; border: 1px solid #fc8181;
+            border-radius: 8px; padding: 16px 20px;
+            color: #c53030; font-size: 14px; display: none;
+        }
+        .erro-box strong { display: block; margin-bottom: 4px; font-size: 15px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo">🏥</div>
+    <div>
+        <h1>Auditoria SUS</h1>
+        <p>Instituto do Cérebro — Sistema de conferência SIGTAP</p>
+    </div>
+</header>
+
+<main>
+
+    <!-- PASSO 1: Modelo -->
+    <div class="step">
+        <div class="step-header">
+            <div class="step-number">1</div>
+            <span class="step-title">Selecione o modelo de auditoria</span>
+        </div>
+        <div class="model-grid">
+            <div class="model-card" id="card-01" onclick="selecionarModelo('01')">
+                <div class="icone">📋</div>
+                <h3>Modelo 01</h3>
+                <p>HGCA</p>
+            </div>
+            <div class="model-card" id="card-02" onclick="selecionarModelo('02')">
+                <div class="icone">📊</div>
+                <h3>Modelo 02</h3>
+                <p>HGE</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- PASSO 2: Arquivo -->
+    <div class="step">
+        <div class="step-header">
+            <div class="step-number">2</div>
+            <span class="step-title">Selecione a planilha Excel</span>
+        </div>
+        <div class="arquivo-area">
+            <button class="btn-arquivo" onclick="escolherArquivo()">📂 Escolher Planilha...</button>
+            <div class="nome-arquivo" id="nome-arquivo">Nenhum arquivo selecionado</div>
+        </div>
+    </div>
+
+    <!-- PASSO 3: Mapeamento de Colunas -->
+    <div class="step" id="step-colunas" style="display:none">
+        <div class="step-header">
+            <div class="step-number">3</div>
+            <span class="step-title">Confirme as colunas da planilha</span>
+        </div>
+
+        <div class="analisando" id="analisando">
+            <div class="spinner"></div>
+            <span>Lendo cabeçalhos da planilha...</span>
+        </div>
+
+        <!-- Campos Modelo 01 -->
+        <div id="campos-01" style="display:none">
+            <div class="mapeamento-grid">
+                <div class="campo-map">
+                    <label class="obrigatorio">Código SIGTAP</label>
+                    <select id="m01-codigo"></select>
+                </div>
+                <div class="campo-map">
+                    <label class="obrigatorio">Valor SP</label>
+                    <select id="m01-valor"></select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Campos Modelo 02 -->
+        <div id="campos-02" style="display:none">
+            <div class="mapeamento-grid">
+                <div class="campo-map">
+                    <label class="obrigatorio">Numeração / Nº (identifica linhas de dados)</label>
+                    <select id="m02-numero"></select>
+                </div>
+                <div class="campo-map">
+                    <label class="obrigatorio">Código SIGTAP</label>
+                    <select id="m02-codigo"></select>
+                </div>
+                <div class="campo-map">
+                    <label class="obrigatorio">Valor do Procedimento</label>
+                    <select id="m02-valor-proc"></select>
+                </div>
+                <div class="campo-map">
+                    <label class="obrigatorio">Valor Cirurgião Principal (75%)</label>
+                    <select id="m02-valor-principal"></select>
+                </div>
+                <div class="campo-map">
+                    <label class="obrigatorio">Valor Médico Auxiliar (25%)</label>
+                    <select id="m02-valor-auxiliar"></select>
+                </div>
+            </div>
+        </div>
+
+        <div class="aviso-mapeamento" id="aviso-mapeamento" style="display:none">
+            ℹ️ As colunas foram pré-selecionadas automaticamente. Verifique se estão corretas antes de executar.
+        </div>
+    </div>
+
+    <!-- PASSO 4: Executar -->
+    <div class="step">
+        <div class="step-header">
+            <div class="step-number">4</div>
+            <span class="step-title">Executar auditoria</span>
+        </div>
+        <button class="btn-executar" id="btn-executar" onclick="executar()" disabled>
+            ▶ Executar Auditoria
+        </button>
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <span>Processando... Aguarde.</span>
+        </div>
+    </div>
+
+    <!-- ERRO -->
+    <div class="erro-box" id="erro-box">
+        <strong>⚠️ Erro</strong>
+        <span id="erro-msg"></span>
+    </div>
+
+    <!-- RESULTADOS -->
+    <div class="step" id="resultados">
+        <div class="resultado-header">
+            <span class="icone-status" id="resultado-icone">✅</span>
+            <h2 id="resultado-titulo">Auditoria concluída</h2>
+        </div>
+        <div class="stats-grid" id="stats-grid"></div>
+        <div class="arquivo-saida" id="arquivo-saida"></div>
+        <button class="btn-abrir" id="btn-abrir" onclick="abrirRelatorio()">📂 Abrir Relatório no Excel</button>
+        <br/>
+        <button class="btn-nova" onclick="novaAuditoria()">↩ Nova Auditoria</button>
+    </div>
+
+</main>
+
+<script>
+    let modeloSelecionado  = null;
+    let arquivoSelecionado = null;
+    let arquivoSaidaAtual  = null;
+    let colunasDisponiveis = [];
+    let linhaCabecalhoDetectada = null;
+
+    // Definicao dos campos por modelo
+    const CAMPOS = {
+        '01': [
+            { id: 'm01-codigo',   key: 'codigo', label: 'Código SIGTAP',  termos: ['SIGTAP','COD','CÓD'] },
+            { id: 'm01-valor',    key: 'valor',  label: 'Valor SP',        termos: ['VALOR','SP'] },
+        ],
+        '02': [
+            { id: 'm02-numero',          key: 'numero',          label: 'Nº',                 termos: ['N°','Nº','NUM'] },
+            { id: 'm02-codigo',          key: 'codigo',          label: 'Código SIGTAP',      termos: ['SIGTAP','COD','CÓD'] },
+            { id: 'm02-valor-proc',      key: 'valor_proc',      label: 'Valor Procedimento', termos: ['VALOR DO PROCEDIMENTO','VALOR PROC'] },
+            { id: 'm02-valor-principal', key: 'valor_principal', label: '75% Cirurgião',      termos: ['75%','PRINCIPAL','CIRURGI'] },
+            { id: 'm02-valor-auxiliar',  key: 'valor_auxiliar',  label: '25% Auxiliar',       termos: ['25%','AUXILIAR'] },
+        ]
+    };
+
+    // ---- Selecionar modelo ----
+    function selecionarModelo(modelo) {
+        modeloSelecionado = modelo;
+        document.querySelectorAll('.model-card').forEach(c => c.classList.remove('selecionado'));
+        document.getElementById('card-' + modelo).classList.add('selecionado');
+        triggerAnalise();
+    }
+
+    // ---- Escolher arquivo ----
+    async function escolherArquivo() {
+        const elNome = document.getElementById('nome-arquivo');
+        elNome.textContent = 'Abrindo seletor...';
+        elNome.classList.remove('selecionado');
+
+        try {
+            const resp  = await fetch('/escolher-arquivo');
+            const dados = await resp.json();
+            if (dados.path) {
+                arquivoSelecionado = dados.path;
+                elNome.textContent  = dados.path.split(/[\\/]/).pop();
+                elNome.title        = dados.path;
+                elNome.classList.add('selecionado');
+            } else {
+                arquivoSelecionado = null;
+                elNome.textContent = 'Nenhum arquivo selecionado';
+            }
+        } catch {
+            elNome.textContent = 'Erro ao abrir seletor de arquivo.';
+            arquivoSelecionado = null;
+        }
+        triggerAnalise();
+    }
+
+    // ---- Disparar análise quando modelo + arquivo estiverem prontos ----
+    function triggerAnalise() {
+        if (modeloSelecionado && arquivoSelecionado) {
+            analisarPlanilha();
+        }
+    }
+
+    // ---- Analisar planilha e popular dropdowns ----
+    async function analisarPlanilha() {
+        const stepColunas = document.getElementById('step-colunas');
+        const analisando  = document.getElementById('analisando');
+        const campos01    = document.getElementById('campos-01');
+        const campos02    = document.getElementById('campos-02');
+        const aviso       = document.getElementById('aviso-mapeamento');
+
+        stepColunas.style.display = 'block';
+        analisando.style.display  = 'flex';
+        campos01.style.display    = 'none';
+        campos02.style.display    = 'none';
+        aviso.style.display       = 'none';
+        document.getElementById('btn-executar').disabled = true;
+
+        try {
+            const url  = `/analisar-planilha?path=${encodeURIComponent(arquivoSelecionado)}&modelo=${modeloSelecionado}`;
+            const resp = await fetch(url);
+            const dados = await resp.json();
+            analisando.style.display = 'none';
+
+            if (!dados.sucesso) {
+                mostrarErro(dados.erro || 'Erro ao analisar a planilha.');
+                return;
+            }
+
+            colunasDisponiveis = dados.colunas;
+            linhaCabecalhoDetectada = dados.linha_cabecalho;
+            popularDropdowns(modeloSelecionado, colunasDisponiveis);
+
+            if (modeloSelecionado === '01') campos01.style.display = 'block';
+            if (modeloSelecionado === '02') campos02.style.display = 'block';
+            aviso.style.display = 'block';
+            document.getElementById('btn-executar').disabled = false;
+
+        } catch (e) {
+            analisando.style.display = 'none';
+            mostrarErro('Falha ao analisar a planilha.');
+        }
+    }
+
+    // ---- Popular dropdowns com pré-seleção inteligente ----
+    function popularDropdowns(modelo, colunas) {
+        const campos = CAMPOS[modelo];
+        campos.forEach(campo => {
+            const select = document.getElementById(campo.id);
+            if (!select) return;
+
+            select.innerHTML = '<option value="">-- Selecione --</option>';
+            colunas.forEach(col => {
+                const opt = document.createElement('option');
+                opt.value       = col;
+                opt.textContent = col;
+                select.appendChild(opt);
+            });
+
+            // Pre-selecao inteligente: encontra a coluna cujo nome
+            // contem mais termos-chave do campo
+            const melhor = colunas.reduce((melhor, col) => {
+                const cu    = col.toUpperCase();
+                const score = campo.termos.filter(t => cu.includes(t)).length;
+                return score > melhor.score ? { col, score } : melhor;
+            }, { col: null, score: 0 });
+
+            if (melhor.col) select.value = melhor.col;
+        });
+    }
+
+    // ---- Coletar mapeamento dos dropdowns ----
+    function coletarMapeamento() {
+        const campos = CAMPOS[modeloSelecionado];
+        const mapeamento = {};
+        for (const campo of campos) {
+            const select = document.getElementById(campo.id);
+            if (!select || !select.value) {
+                mostrarErro(`Por favor, selecione a coluna para: "${campo.label}"`);
+                return null;
+            }
+            mapeamento[campo.key] = select.value;
+        }
+        return mapeamento;
+    }
+
+    // ---- Executar auditoria ----
+    async function executar() {
+        document.getElementById('erro-box').style.display    = 'none';
+        document.getElementById('resultados').style.display  = 'none';
+
+        const mapeamento = coletarMapeamento();
+        if (!mapeamento) return;
+
+        document.getElementById('btn-executar').disabled = true;
+        const loading = document.getElementById('loading');
+        loading.style.display = 'flex';
+
+        try {
+            const resp  = await fetch('/executar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    modelo:    modeloSelecionado,
+                    planilha:  arquivoSelecionado,
+                    cbo:       '',
+                    mapeamento: mapeamento,
+                    linha_cabecalho: linhaCabecalhoDetectada
+                })
+            });
+            const dados = await resp.json();
+            loading.style.display = 'none';
+
+            if (!dados.sucesso) {
+                mostrarErro(dados.erro || 'Erro desconhecido.');
+            } else {
+                mostrarResultado(dados);
+            }
+        } catch {
+            loading.style.display = 'none';
+            mostrarErro('Falha na comunicação com o servidor local. Tente novamente.');
+        }
+
+        document.getElementById('btn-executar').disabled = false;
+    }
+
+    // ---- Exibir erro ----
+    function mostrarErro(msg) {
+        const box = document.getElementById('erro-box');
+        document.getElementById('erro-msg').textContent = msg;
+        box.style.display = 'block';
+        box.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // ---- Exibir resultado ----
+    function mostrarResultado(dados) {
+        arquivoSaidaAtual = dados.arquivo_saida;
+
+        const temProblema = dados.divergentes > 0 || dados.nao_previstos > 0;
+        document.getElementById('resultado-icone').textContent = temProblema ? '⚠️' : '✅';
+        document.getElementById('resultado-titulo').textContent = temProblema
+            ? 'Auditoria concluída — divergências encontradas'
+            : 'Auditoria concluída — tudo correto!';
+
+        const stats = [
+            { numero: dados.total,        label: 'Procedimentos\nauditados',     classe: '' },
+            { numero: dados.corretos,     label: 'Valores\ncorretos',            classe: 'ok' },
+            { numero: dados.divergentes,  label: 'Valores\ndivergentes',         classe: dados.divergentes  > 0 ? 'erro' : 'ok' },
+            { numero: dados.nao_previstos,label: 'Fora do\nCBO',                 classe: dados.nao_previstos > 0 ? 'erro' : 'ok' },
+        ];
+        if (dados.perc_principal_ok !== 'N/A') {
+            stats.push({ numero: dados.perc_principal_ok, label: '75% Cirurgião\ncorretos', classe: 'ok' });
+            stats.push({ numero: dados.perc_auxiliar_ok,  label: '25% Auxiliar\ncorretos',  classe: 'ok' });
+        }
+
+        document.getElementById('stats-grid').innerHTML = stats.map(s => `
+            <div class="stat-card">
+                <div class="numero ${s.classe}">${s.numero}</div>
+                <div class="label">${s.label.replace(/\n/g,'<br/>')}</div>
+            </div>`).join('');
+
+        document.getElementById('arquivo-saida').textContent = '📁 Relatório salvo em: ' + dados.arquivo_saida;
+        document.getElementById('resultados').style.display = 'block';
+        document.getElementById('resultados').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // ---- Abrir relatório ----
+    async function abrirRelatorio() {
+        if (arquivoSaidaAtual) {
+            await fetch('/abrir-relatorio?path=' + encodeURIComponent(arquivoSaidaAtual));
+        }
+    }
+
+    // ---- Nova auditoria ----
+    function novaAuditoria() {
+        document.getElementById('resultados').style.display     = 'none';
+        document.getElementById('erro-box').style.display       = 'none';
+        document.getElementById('step-colunas').style.display   = 'none';
+        document.getElementById('btn-executar').disabled        = true;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+</script>
+
+</body>
+</html>

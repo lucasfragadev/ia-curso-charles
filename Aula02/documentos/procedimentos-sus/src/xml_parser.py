@@ -1,9 +1,3 @@
-"""
-Parser de respostas XML da API SIGTAP.
-
-Principio: Single Responsibility - este modulo cuida exclusivamente
-de transformar XML cru em estruturas Python utilizaveis.
-"""
 import xml.etree.ElementTree as ET
 
 
@@ -61,3 +55,25 @@ def procedimento_possui_cbo(xml_text: str, cbo_alvo: str) -> bool:
     """Verifica se um CBO especifico esta vinculado ao procedimento."""
     cbos = extrair_cbos(xml_text)
     return any(cbo["codigo"] == cbo_alvo for cbo in cbos)
+
+
+def extrair_valores(xml_text: str) -> dict:
+    """Extrai os valores financeiros (SA, SH, SP) do XML detalhado."""
+    valores = {"valorSA": 0.0, "valorSH": 0.0, "valorSP": 0.0}
+    
+    if not xml_text:
+        return valores
+        
+    try:
+        root = ET.fromstring(xml_text)
+        for elem in root.iter():
+            tag = elem.tag.split("}")[-1]
+            if tag in ["valorSA", "valorSH", "valorSP"] and elem.text:
+                try:
+                    valores[tag] = float(elem.text)
+                except ValueError:
+                    pass
+    except ET.ParseError:
+        pass
+        
+    return valores

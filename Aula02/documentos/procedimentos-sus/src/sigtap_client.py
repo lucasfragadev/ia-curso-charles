@@ -94,8 +94,9 @@ xmlns:pag="http://servicos.saude.gov.br/wsdl/mensageria/v1/paginacao">
 
 
 def detalhar_procedimento(codigo_procedimento: str,
+                          categoria_detalhe: str = "CBOS",
                           quantidade_cbos: int = 20) -> str | None:
-    """Busca os CBOs vinculados a um procedimento.
+    """Busca os detalhes vinculados a um procedimento.
 
     Returns:
         XML de resposta como string, ou None em caso de falha.
@@ -112,7 +113,7 @@ xmlns:pag="http://servicos.saude.gov.br/wsdl/mensageria/v1/paginacao">
       <proc1:codigoProcedimento>{codigo_procedimento}</proc1:codigoProcedimento>
       <proc:DetalhesAdicionais>
         <det:DetalheAdicional>
-          <det:categoriaDetalheAdicional>CBOS</det:categoriaDetalheAdicional>
+          <det:categoriaDetalheAdicional>{categoria_detalhe}</det:categoriaDetalheAdicional>
           <det:Paginacao>
             <pag:registroInicial>1</pag:registroInicial>
             <pag:quantidadeRegistros>{quantidade_cbos}</pag:quantidadeRegistros>
